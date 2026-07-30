@@ -19,6 +19,8 @@ export default tseslint.config(
       '**/.tanstack/**',
       'apps/web/src/routeTree.gen.ts',
       'apps/api/src/generated/**',
+      // Vendored agent skills — owned by their upstream repos, not by us.
+      '.agents/**',
     ],
   },
 

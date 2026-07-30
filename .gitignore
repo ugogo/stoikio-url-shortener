@@ -19,3 +19,8 @@ apps/api/src/generated/
 
 .DS_Store
 *.log
+
+# Local junction/symlink -> .agents/skills, so Claude Code can discover them.
+# The skills themselves are tracked in .agents/skills; recreate with:
+#   New-Item -ItemType Junction -Path .claude/skills -Target .agents/skills
+.claude/skills
