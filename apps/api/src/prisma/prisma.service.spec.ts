@@ -20,7 +20,6 @@ describe('PrismaService', () => {
   });
 
   // PrismaClient hands back a Proxy, so assert on the surface, not `instanceof`.
-  // The schema has no models yet, so there is nothing more specific to check.
   it('exposes the client API', () => {
     expect(typeof service.$connect).toBe('function');
     expect(typeof service.$queryRaw).toBe('function');

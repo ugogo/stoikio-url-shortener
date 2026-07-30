@@ -10,4 +10,8 @@ generator client {
   moduleFormat = "cjs"
 }
 
-// No models yet. Add one, then run `pnpm db:migrate`.
+model ShortLink {
+  slug        String   @id
+  destination String
+  createdAt   DateTime @default(now())
+}

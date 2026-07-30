@@ -1,11 +1,16 @@
 # stoikio-url-shortener
 
-A pnpm monorepo.
+A URL shortener: exchange a long URL for a short one; following it redirects. No
+accounts. Short links are **permanent** — never edited, never deleted, slugs never
+reused.
 
-| Package        | Path       | Stack                                              | Port |
-| -------------- | ---------- | -------------------------------------------------- | ---- |
-| `@stoikio/api` | `apps/api` | NestJS 11 + Prisma 7 (SQLite) + Vitest             | 3001 |
-| `@stoikio/web` | `apps/web` | TanStack Start (React 19) + Tailwind 4 + shadcn/ui | 3000 |
+Domain vocabulary: [CONTEXT.md](CONTEXT.md).
+
+| Package              | Path                 | Stack                                                      | Port |
+| -------------------- | -------------------- | ---------------------------------------------------------- | ---- |
+| `@stoikio/api`       | `apps/api`           | NestJS 11 + Prisma 7 (SQLite) + Vitest                     | 3001 |
+| `@stoikio/web`       | `apps/web`           | TanStack Start (React 19) + Tailwind 4 + shadcn/ui         | 3000 |
+| `@stoikio/contracts` | `packages/contracts` | Zod schemas shared by api and web (the HTTP wire contract) | —    |
 
 ## Getting started
 
@@ -13,7 +18,7 @@ A pnpm monorepo.
 pnpm install
 ```
 
-`postinstall` generates the Prisma Client. Create the (currently empty) database file:
+`postinstall` generates the Prisma Client. Create the database file and apply migrations:
 
 ```bash
 pnpm --filter @stoikio/api db:migrate
@@ -25,8 +30,7 @@ Run both apps in parallel:
 pnpm dev
 ```
 
-Then open http://localhost:3000 — the `/` route renders "Hello world" plus the live
-status of the API's `GET /health` endpoint.
+Then open http://localhost:3000 and shorten something.
 
 ## Scripts
 
@@ -35,15 +39,42 @@ Run from the repo root; each fans out to every workspace package.
 | Script              | What it does                        |
 | ------------------- | ----------------------------------- |
 | `pnpm dev`          | Runs both dev servers in parallel   |
-| `pnpm build`        | Builds both apps                    |
-| `pnpm test`         | Runs the API test suite (Vitest)    |
-| `pnpm typecheck`    | `tsc --noEmit` in both apps         |
+| `pnpm build`        | Builds every package                |
+| `pnpm test`         | Runs every test suite (Vitest)      |
+| `pnpm typecheck`    | `tsc --noEmit` in every package     |
 | `pnpm lint`         | ESLint across the repo              |
 | `pnpm lint:fix`     | ESLint with `--fix`                 |
 | `pnpm format`       | Prettier `--write`                  |
 | `pnpm format:check` | Prettier `--check` (use this in CI) |
 
 ## API
+
+`POST /links` takes a full `http` or `https` URL — no scheme is inferred, so
+`example.com` is a `400`. The body is strict, so unknown fields are rejected too:
+
+```bash
+curl -X POST http://localhost:3001/links \
+  -H 'Content-Type: application/json' \
+  -d '{"destination":"https://example.com/a/very/long/page"}'
+```
+
+```json
+{
+  "createdAt": "2026-07-30T15:42:11.902Z",
+  "destination": "https://example.com/a/very/long/page",
+  "slug": "aB3dEf7h"
+}
+```
+
+No short URL in the response — whoever serves the link builds it from the visitor's own
+origin, which the API cannot know. From `curl`, the link is `<web origin>/l/<slug>`.
+
+Following `<web origin>/l/<slug>` costs one redirect: the web app resolves the slug
+through the API server-side, then redirects straight to the destination. The API stays
+the only resolver, and the redirect is a `302` rather than a `301`.
+
+An unknown slug is a `404` from the API; visitors instead see the web app's dead-link
+page — the same page a timeout or an unreachable API produces.
 
 `GET /health` returns:
 
@@ -52,7 +83,8 @@ Run from the repo root; each fans out to every workspace package.
 ```
 
 Tests live next to the code (`*.spec.ts`) and in `apps/api/test` (`*.e2e-spec.ts`),
-and run under Vitest with `unplugin-swc` so Nest's decorator metadata is emitted.
+and run under Vitest with `unplugin-swc` so Nest's decorator metadata is emitted. The
+e2e specs write to the dev database and clean up after themselves.
 
 ### Database
 
@@ -60,13 +92,20 @@ Prisma 7 with SQLite. The schema lives in `apps/api/prisma/schema.prisma`; CLI
 configuration (datasource URL, migrations path) lives in `apps/api/prisma.config.ts` —
 Prisma 7 no longer reads the datasource URL from the schema on its own.
 
-**The schema has no models yet**, so there are no migrations either. Add a model, then
-run `pnpm db:migrate` to create the first one.
+There is one model, `ShortLink`, keyed by its slug:
 
-There is no `.env` and no `dotenv`. The database path is a plain constant in
-`apps/api/src/prisma/database-url.ts` (`file:./prisma/dev.db`, relative to `apps/api`),
-imported by both the CLI config and `PrismaService` so the two cannot drift. Change it
-there if you ever need to. The database file and the generated client are gitignored.
+```prisma
+model ShortLink {
+  slug        String   @id
+  destination String
+  createdAt   DateTime @default(now())
+}
+```
+
+No `.env`, no `dotenv`. The database path (`file:./prisma/dev.db`) is a constant in
+`apps/api/src/prisma/database-url.ts`, imported by both the CLI config and
+`PrismaService` so the two cannot drift. The db file and generated client are
+gitignored.
 
 | Script (from `apps/api`) | What it does                                    |
 | ------------------------ | ----------------------------------------------- |
@@ -76,14 +115,13 @@ there if you ever need to. The database file and the generated client are gitign
 | `pnpm db:reset`          | Drops and re-applies every migration            |
 | `pnpm db:studio`         | Opens Prisma Studio                             |
 
-Two Prisma 7 details worth knowing before you touch the setup:
+Two Prisma 7 details worth knowing:
 
-- **A driver adapter is mandatory.** `PrismaService` constructs the client with
+- **A driver adapter is mandatory.** `PrismaService` uses
   `@prisma/adapter-better-sqlite3`; there is no implicit connection anymore.
-- **The client is generated TypeScript, not a `node_modules` package.** It lands in
-  `apps/api/src/generated/prisma` with `moduleFormat = "cjs"` (the generator is
-  ESM-first by default, but the API is CommonJS). Import from
-  `../generated/prisma/client`, not `@prisma/client`. Re-run `pnpm db:generate`
+- **The client is generated TypeScript**, landing in `apps/api/src/generated/prisma`
+  with `moduleFormat = "cjs"` (the API is CommonJS). Import from
+  `../generated/prisma/client`, not `@prisma/client`, and re-run `pnpm db:generate`
   after every schema change — a fresh clone will not typecheck until you do.
 
 `PrismaService` is provided by a `@Global()` `PrismaModule`, so feature modules can
@@ -95,9 +133,15 @@ File-based routing under `apps/web/src/routes`. `routeTree.gen.ts` is generated 
 never edit it by hand; the Vite plugin regenerates it on dev/build, or run
 `pnpm --filter @stoikio/web generate-routes`.
 
-The API base URL defaults to `http://localhost:3001` and can be overridden with the
-`VITE_API_URL` environment variable. The API's allowed CORS origin defaults to
-`http://localhost:3000` and can be overridden with `CORS_ORIGIN`.
+Two env vars, both optional in development where the defaults already line up:
+
+| Variable       | Read by | Default                 |
+| -------------- | ------- | ----------------------- |
+| `VITE_API_URL` | web     | `http://localhost:3001` |
+| `CORS_ORIGIN`  | api     | `http://localhost:3000` |
+
+The API knows nothing else about the web app: it builds no short URLs and never
+redirects to it.
 
 ### Styling
 
@@ -111,9 +155,8 @@ Lucide icons, Geist font). Add components with:
 pnpm dlx shadcn@latest add <component> -c apps/web
 ```
 
-They land in `apps/web/src/components/ui/` and are linted and formatted like the rest of
-the codebase — run `pnpm lint:fix && pnpm format` after adding one, since the generated
-output does not match the repo's ESLint and Prettier rules out of the box.
+They land in `apps/web/src/components/ui/` — run `pnpm lint:fix && pnpm format` after
+adding one; the generated output does not match the repo's rules out of the box.
 
 Dark mode is wired through the `.dark` class that shadcn generates, but nothing toggles
 it yet; add a theme provider when you need it.
