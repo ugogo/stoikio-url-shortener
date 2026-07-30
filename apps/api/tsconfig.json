@@ -8,6 +8,6 @@
     "target": "ES2023",
     "types": ["node"]
   },
-  "include": ["src/**/*", "test/**/*", "vitest.config.ts"],
+  "include": ["src/**/*", "test/**/*", "vitest.config.ts", "prisma.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

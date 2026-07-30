@@ -1,0 +1,13 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+
+  // The API is a CommonJS NestJS app; the generator is ESM-first by default.
+  moduleFormat = "cjs"
+}
+
+// No models yet. Add one, then run `pnpm db:migrate`.

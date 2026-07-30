@@ -4,13 +4,19 @@ A pnpm monorepo.
 
 | Package        | Path       | Stack                                              | Port |
 | -------------- | ---------- | -------------------------------------------------- | ---- |
-| `@stoikio/api` | `apps/api` | NestJS 11 + Vitest                                 | 3001 |
+| `@stoikio/api` | `apps/api` | NestJS 11 + Prisma 7 (SQLite) + Vitest             | 3001 |
 | `@stoikio/web` | `apps/web` | TanStack Start (React 19) + Tailwind 4 + shadcn/ui | 3000 |
 
 ## Getting started
 
 ```bash
 pnpm install
+```
+
+`postinstall` generates the Prisma Client. Create the (currently empty) database file:
+
+```bash
+pnpm --filter @stoikio/api db:migrate
 ```
 
 Run both apps in parallel:
@@ -47,6 +53,41 @@ Run from the repo root; each fans out to every workspace package.
 
 Tests live next to the code (`*.spec.ts`) and in `apps/api/test` (`*.e2e-spec.ts`),
 and run under Vitest with `unplugin-swc` so Nest's decorator metadata is emitted.
+
+### Database
+
+Prisma 7 with SQLite. The schema lives in `apps/api/prisma/schema.prisma`; CLI
+configuration (datasource URL, migrations path) lives in `apps/api/prisma.config.ts` —
+Prisma 7 no longer reads the datasource URL from the schema on its own.
+
+**The schema has no models yet**, so there are no migrations either. Add a model, then
+run `pnpm db:migrate` to create the first one.
+
+There is no `.env` and no `dotenv`. The database path is a plain constant in
+`apps/api/src/prisma/database-url.ts` (`file:./prisma/dev.db`, relative to `apps/api`),
+imported by both the CLI config and `PrismaService` so the two cannot drift. Change it
+there if you ever need to. The database file and the generated client are gitignored.
+
+| Script (from `apps/api`) | What it does                                    |
+| ------------------------ | ----------------------------------------------- |
+| `pnpm db:migrate`        | Creates and applies a migration (`migrate dev`) |
+| `pnpm db:deploy`         | Applies pending migrations (CI/prod)            |
+| `pnpm db:generate`       | Regenerates the client (also runs on `install`) |
+| `pnpm db:reset`          | Drops and re-applies every migration            |
+| `pnpm db:studio`         | Opens Prisma Studio                             |
+
+Two Prisma 7 details worth knowing before you touch the setup:
+
+- **A driver adapter is mandatory.** `PrismaService` constructs the client with
+  `@prisma/adapter-better-sqlite3`; there is no implicit connection anymore.
+- **The client is generated TypeScript, not a `node_modules` package.** It lands in
+  `apps/api/src/generated/prisma` with `moduleFormat = "cjs"` (the generator is
+  ESM-first by default, but the API is CommonJS). Import from
+  `../generated/prisma/client`, not `@prisma/client`. Re-run `pnpm db:generate`
+  after every schema change — a fresh clone will not typecheck until you do.
+
+`PrismaService` is provided by a `@Global()` `PrismaModule`, so feature modules can
+inject it without importing anything.
 
 ## Web
 

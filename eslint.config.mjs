@@ -18,6 +18,7 @@ export default tseslint.config(
       '**/.nitro/**',
       '**/.tanstack/**',
       'apps/web/src/routeTree.gen.ts',
+      'apps/api/src/generated/**',
     ],
   },
 
