@@ -275,3 +275,8 @@
     font-family: var(--font-mono);
   }
 }
+
+/** The entrance shared by every line of text under the shorten frame. */
+@utility animate-hint-in {
+  @apply animate-in fade-in slide-in-from-bottom-1.5 duration-300 ease-out motion-reduce:animate-none;
+}

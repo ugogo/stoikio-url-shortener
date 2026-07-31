@@ -1,14 +1,9 @@
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
-import { ArrowRight, RotateCcw } from 'lucide-react';
 import { z } from 'zod';
 
-import type { FormStatusProps } from '@/components/form-status';
+import type { ShortenState } from '@/components/shorten-form';
 
-import { CopyButton } from '@/components/copy-button';
-import { DestinationInput } from '@/components/destination-input';
-import { FormStatus } from '@/components/form-status';
-import { ShortLinkReveal } from '@/components/short-link-reveal';
-import { ShortenFrame } from '@/components/shorten-frame';
+import { ShortenForm } from '@/components/shorten-form';
 import { Button } from '@/components/ui/button';
 import {
   DEBUG_DESTINATION,
@@ -36,9 +31,10 @@ export const Route = createFileRoute('/debug')({
 });
 
 function DebugStates() {
+  const navigate = Route.useNavigate();
   const { state } = Route.useSearch();
 
-  const status: FormStatusProps =
+  const status: ShortenState =
     state === 'success'
       ? {
           destination: DEBUG_DESTINATION,
@@ -60,66 +56,16 @@ function DebugStates() {
         </p>
       </header>
 
-      <form
-        className="flex flex-col gap-2.5"
+      <ShortenForm
+        onShortenAnother={() => void navigate({ search: { state: 'idle' } })}
         onSubmit={(event) => {
           event.preventDefault();
         }}
-      >
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <ShortenFrame invalid={state === 'error'}>
-            {state === 'success' ? (
-              <>
-                <ShortLinkReveal
-                  // Forces a remount so the reveal replays.
-                  key={state}
-                  shortLinkUrl={DEBUG_SHORT_LINK_URL}
-                />
-                <CopyButton value={DEBUG_SHORT_LINK_URL} />
-              </>
-            ) : (
-              <DestinationInput
-                disabled={state === 'pending'}
-                invalid={state === 'error'}
-              />
-            )}
-          </ShortenFrame>
-
-          {state === 'success' ? (
-            <span className="flex transition-opacity delay-200 duration-200 ease-out starting:opacity-0">
-              <Button
-                className="h-12 flex-auto sm:h-12"
-                render={<Link search={{ state: 'idle' }} to="/debug" />}
-                size="xl"
-                variant="outline"
-              >
-                <RotateCcw />
-                Shorten another
-              </Button>
-            </span>
-          ) : (
-            <Button
-              className="h-12 sm:h-12"
-              loading={state === 'pending'}
-              size="xl"
-              type="submit"
-            >
-              Shorten
-              <ArrowRight />
-            </Button>
-          )}
-        </div>
-
-        <FormStatus {...status} />
-      </form>
-
-      <p className="text-muted-foreground text-sm text-pretty">
-        Composed from the same primitives as the home route, but composed separately — so
-        it can drift from it.
-      </p>
+        state={status}
+      />
 
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center p-4 pb-[max(--spacing(10),env(safe-area-inset-bottom))]">
-        <div className="border-input bg-popover/72 pointer-events-auto flex gap-1.5 rounded-full border p-1.5 shadow-lg backdrop-blur-md dark:bg-input/72">
+        <div className="border-input bg-popover/72 pointer-events-auto flex gap-1.5 rounded-full border p-1.5 shadow-lg backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 delay-300 duration-300 ease-out fill-mode-both motion-reduce:animate-none dark:bg-input/72">
           {DEBUG_STATES.map((option) => (
             <Button
               className="rounded-full before:rounded-full"

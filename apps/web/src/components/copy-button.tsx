@@ -8,8 +8,8 @@ export function CopyButton({ value }: { value: string }) {
   const { copied, copy } = useCopyToClipboard();
 
   return (
-    // A second `transition-*` on the Button would replace its own.
-    <span className="transition-opacity delay-200 duration-200 ease-out starting:opacity-0">
+    // Don't override the Button's transition.
+    <span className="animate-in fade-in delay-200 duration-200 ease-out fill-mode-both motion-reduce:animate-none">
       <Button
         aria-label="Copy short link"
         className="rounded-sm before:rounded-[calc(var(--radius-sm)-1px)]"

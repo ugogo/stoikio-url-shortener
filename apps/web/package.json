@@ -17,6 +17,7 @@
     "@base-ui/react": "^1.6.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
     "@fontsource-variable/inter": "^5.3.0",
+    "@hookform/resolvers": "^5.5.7",
     "@stoikio/contracts": "workspace:*",
     "@tanstack/react-router": "^1.170.18",
     "@tanstack/react-start": "^1.168.33",
@@ -25,6 +26,7 @@
     "lucide-react": "^1.27.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-hook-form": "^7.83.0",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },
