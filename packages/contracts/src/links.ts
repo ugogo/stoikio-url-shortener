@@ -9,7 +9,7 @@ export const createShortLinkSchema = z.strictObject({
     if (parsed === null) {
       ctx.addIssue({
         code: 'custom',
-        message: `must be an http or https URL of at most ${String(MAX_DESTINATION_LENGTH)} characters`,
+        message: `Use an http or https URL of at most ${String(MAX_DESTINATION_LENGTH)} characters.`,
       });
 
       return z.NEVER;

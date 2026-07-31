@@ -27,8 +27,8 @@ function NotFound() {
       <p className="text-muted-foreground text-pretty">
         The short link you followed was mistyped, truncated, or never created.
       </p>
-      <Button asChild className="w-fit" variant="outline">
-        <Link to="/">Shorten a URL</Link>
+      <Button className="w-fit" render={<Link to="/" />} variant="outline">
+        Shorten a URL
       </Button>
     </main>
   );

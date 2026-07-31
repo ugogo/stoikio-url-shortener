@@ -8,7 +8,10 @@ export type { CreatedShortLink };
 export type CreateResult =
   { error: string; ok: false } | { link: CreatedShortLink; ok: true };
 
-const errorBodySchema = z.object({ message: z.string() }).partial();
+/** Nest sends a string; the validation pipe sends a list of issues. */
+const errorBodySchema = z.object({
+  message: z.union([z.string(), z.array(z.object({ message: z.string() }))]).optional(),
+});
 
 const API_URL: string =
   z
@@ -33,11 +36,12 @@ export async function createShortLink(destination: string): Promise<CreateResult
 
     if (!response.ok) {
       const body = errorBodySchema.safeParse(await response.json().catch(() => null));
+      const message = body.success ? body.data.message : undefined;
 
       return {
         error:
-          (body.success ? body.data.message : undefined) ??
-          `API responded with ${String(response.status)}`,
+          (typeof message === 'string' ? message : message?.[0]?.message) ??
+          'Unable to shorten that URL. Try again.',
         ok: false,
       };
     }
@@ -45,14 +49,19 @@ export async function createShortLink(destination: string): Promise<CreateResult
     const link = createdShortLinkSchema.safeParse(await response.json());
 
     if (!link.success) {
-      return { error: 'API returned an unexpected response shape', ok: false };
+      console.error('Unexpected response shape from the API', link.error);
+
+      return { error: 'Unable to shorten that URL. Try again.', ok: false };
     }
 
     return { link: link.data, ok: true };
   } catch (cause) {
-    const message = cause instanceof Error ? cause.message : 'Unknown error';
+    console.error(`Could not reach the API at ${API_URL}`, cause);
 
-    return { error: `Could not reach the API at ${API_URL}: ${message}`, ok: false };
+    return {
+      error: 'Unable to reach the server. Check your connection and try again.',
+      ok: false,
+    };
   }
 }
 
