@@ -1,10 +1,11 @@
 import { createRootRoute, HeadContent, Scripts } from '@tanstack/react-router';
 
+import { DebugLink } from '@/components/debug-link';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 import appCss from '../styles.css?url';
 
-// Runs before paint so a stored or system dark preference never flashes light.
+// Before paint, or dark mode flashes light on load.
 const themeBootScript = `(function () {
   try {
     var stored = localStorage.getItem('theme');
@@ -51,7 +52,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="fixed end-4 top-4">
+        <div className="fixed end-4 top-4 flex items-center gap-1">
+          <DebugLink />
           <ThemeToggle />
         </div>
 
