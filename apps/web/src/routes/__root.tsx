@@ -52,7 +52,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div className="fixed end-4 top-4 flex items-center gap-1">
+        <div className="fixed inset-e-4 top-4 flex items-center gap-1">
           <DebugLink />
           <ThemeToggle />
         </div>
