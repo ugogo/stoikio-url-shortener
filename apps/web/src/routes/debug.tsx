@@ -2,13 +2,16 @@ import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { z } from 'zod';
 
 import type { ShortenState } from '@/components/shorten-form';
+import type { DebugState } from '@/lib/debug-fixtures';
 
+import { DeadLinkPage } from '@/components/dead-link-page';
 import { ShortenForm } from '@/components/shorten-form';
 import { Button } from '@/components/ui/button';
 import {
   DEBUG_DESTINATION,
   DEBUG_ERROR,
   DEBUG_SHORT_LINK_URL,
+  DEBUG_SLUG,
   DEBUG_STATES,
 } from '@/lib/debug-fixtures';
 
@@ -33,6 +36,16 @@ export const Route = createFileRoute('/debug')({
 function DebugStatesPage() {
   const navigate = Route.useNavigate();
   const { state } = Route.useSearch();
+
+  // A whole page rather than a form state, so it replaces the frame around it.
+  if (state === 'not-found') {
+    return (
+      <>
+        <DeadLinkPage slug={DEBUG_SLUG} />
+        <StatePicker current={state} />
+      </>
+    );
+  }
 
   const status: ShortenState =
     state === 'success'
@@ -64,21 +77,27 @@ function DebugStatesPage() {
         state={status}
       />
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center p-4 pb-[max(--spacing(10),env(safe-area-inset-bottom))]">
-        <div className="border-input bg-popover/72 pointer-events-auto flex gap-1.5 rounded-full border p-1.5 shadow-lg backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 delay-300 duration-300 ease-out fill-mode-both motion-reduce:animate-none dark:bg-input/72">
-          {DEBUG_STATES.map((option) => (
-            <Button
-              className="rounded-full before:rounded-full"
-              key={option}
-              render={<Link search={{ state: option }} to="/debug" />}
-              size="lg"
-              variant={option === state ? 'default' : 'ghost'}
-            >
-              <span className="capitalize">{option}</span>
-            </Button>
-          ))}
-        </div>
-      </div>
+      <StatePicker current={state} />
     </main>
+  );
+}
+
+function StatePicker({ current }: { current: DebugState }) {
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center p-4 pb-[max(--spacing(10),env(safe-area-inset-bottom))]">
+      <div className="border-input bg-popover/72 pointer-events-auto flex gap-1.5 rounded-full border p-1.5 shadow-lg backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 delay-300 duration-300 ease-out fill-mode-both motion-reduce:animate-none dark:bg-input/72">
+        {DEBUG_STATES.map((option) => (
+          <Button
+            className="rounded-full before:rounded-full"
+            key={option}
+            render={<Link search={{ state: option }} to="/debug" />}
+            size="lg"
+            variant={option === current ? 'default' : 'ghost'}
+          >
+            <span className="first-letter:uppercase">{option.replace('-', ' ')}</span>
+          </Button>
+        ))}
+      </div>
+    </div>
   );
 }
