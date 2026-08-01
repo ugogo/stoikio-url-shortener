@@ -4,10 +4,10 @@ import { ShortenForm } from '@/components/shorten-form';
 import { useShortenForm } from '@/hooks/use-shorten-form';
 
 export const Route = createFileRoute('/')({
-  component: Home,
+  component: HomePage,
 });
 
-function Home() {
+function HomePage() {
   const { inputProps, onSubmit, shortenAnother, state } = useShortenForm();
 
   return (

@@ -1,11 +1,11 @@
 import { createRouter as createTanStackRouter } from '@tanstack/react-router';
 
-import { NotFound } from './components/not-found';
+import { NotFoundPage } from './components/not-found-page';
 import { routeTree } from './routeTree.gen';
 
 export function getRouter() {
   const router = createTanStackRouter({
-    defaultNotFoundComponent: NotFound,
+    defaultNotFoundComponent: NotFoundPage,
     defaultPreload: 'intent', // preload on hover
     defaultPreloadStaleTime: 0,
     routeTree,

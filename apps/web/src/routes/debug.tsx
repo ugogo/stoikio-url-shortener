@@ -27,10 +27,10 @@ export const Route = createFileRoute('/debug')({
       throw notFound();
     }
   },
-  component: DebugStates,
+  component: DebugStatesPage,
 });
 
-function DebugStates() {
+function DebugStatesPage() {
   const navigate = Route.useNavigate();
   const { state } = Route.useSearch();
 
