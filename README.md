@@ -129,14 +129,36 @@ instead of impersonating Apple.
 pnpm test
 ```
 
-Vitest everywhere. Unit tests sit next to the code (`*.spec.ts`): slug
-generation, destination parsing (including the `javascript:` case), health.
+Vitest for unit and API tests, written test-first. Unit tests sit next to the
+code (`*.spec.ts`): slug generation, destination parsing (including the
+`javascript:` case), health.
 API e2e tests (`apps/api/test/*.e2e-spec.ts`) boot the real Nest app, cover
 create → resolve → 404, and clean up after themselves.
 
-The web app has no e2e coverage, a known gap. Next: a Playwright suite for
-shorten via form, follow the link to the destination, and dead slug → error
-page, which would also pin the focus and copy-button behavior units can't see.
+```bash
+pnpm test:e2e:install   # once: downloads Chromium
+pnpm test:e2e
+```
+
+Playwright for the web app (`apps/web/e2e/*.spec.ts`): real browser, both real
+servers, no mocked API. `/l/$slug` resolves server-side, where the browser has
+nothing to intercept.
+
+| Spec               | Covers                                                                                                                              |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `shorten.spec.ts`  | Form → short link, clipboard, shorten another, and the focus that lands on the field after each                                     |
+| `redirect.spec.ts` | Following a short link to its destination — as a `302`, never a `301` — and a dead slug reaching the dead-link page instead of JSON |
+
+Own ports (**3100/3101**) and own database, so a run never collides with
+`pnpm dev` or leaves short links in `dev.db`. Chromium only: nothing here is
+engine-specific, and no other engine grants clipboard permissions headlessly.
+
+Roles and labels, no test ids, so a pass also proves the accessible names work.
+`openShortenForm` waits for React to claim the form — SSR ships the markup
+first, and a submit before hydration does nothing.
+
+**I have not reviewed it.** Agent-written, agent-verified, manually tested but not read line by
+line.
 
 ## API
 
@@ -170,10 +192,10 @@ model ShortLink {
 }
 ```
 
-The database path (`file:./prisma/dev.db`) is a constant in
-`apps/api/src/prisma/database-url.ts`, imported by both the CLI config
-(`prisma.config.ts`) and `PrismaService` so the two cannot drift. The db file
-and generated client are gitignored.
+Both database paths — the real one and the e2e suite's — are constants in
+`apps/api/src/prisma/database-url.ts`. Nothing assembles a path anywhere else.
+`prisma.config.ts` and `PrismaService` import the same `ACTIVE_DATABASE_URL`, so
+they cannot drift. The db files and generated client are gitignored.
 
 | Script (from `apps/api`) | What it does                                    |
 | ------------------------ | ----------------------------------------------- |
@@ -200,10 +222,12 @@ File-based routing under `apps/web/src/routes`
 - `/debug`: dev-only gallery of every UI state, so each can be polished
   without contriving it.
 
-| Variable       | Read by | Default                 |
-| -------------- | ------- | ----------------------- |
-| `VITE_API_URL` | web     | `http://localhost:3001` |
-| `CORS_ORIGIN`  | api     | `http://localhost:3000` |
+| Variable           | Read by | Default                         |
+| ------------------ | ------- | ------------------------------- |
+| `VITE_API_URL`     | web     | `http://localhost:3001`         |
+| `CORS_ORIGIN`      | api     | `http://localhost:3000`         |
+| `PORT`             | api     | `3001`                          |
+| `USE_E2E_DATABASE` | api     | unset — Playwright sets it to 1 |
 
 Styling: Tailwind CSS v4 (theme in `apps/web/src/styles.css`, no config file)
 with shadcn/ui (`pnpm dlx shadcn@latest add <component> -c apps/web`).
@@ -214,7 +238,8 @@ with shadcn/ui (`pnpm dlx shadcn@latest add <component> -c apps/web`).
 | ------------------- | ----------------------------------- |
 | `pnpm dev`          | Both dev servers in parallel        |
 | `pnpm build`        | Builds every package                |
-| `pnpm test`         | Every test suite (Vitest)           |
+| `pnpm test`         | Unit and API tests (Vitest)         |
+| `pnpm test:e2e`     | Web e2e suite (Playwright)          |
 | `pnpm typecheck`    | `tsc --noEmit` in every package     |
 | `pnpm lint`         | ESLint across the repo              |
 | `pnpm lint:fix`     | ESLint with `--fix`                 |
@@ -240,10 +265,8 @@ sharpened spec rather than a wish.
 Nothing was merged on trust. Every generated diff was read, challenged where it
 drifted from the decisions above, and tested before it landed.
 
-QA was manual at every step: each state exercised by hand, which is exactly the
-work a Playwright suite should be doing (see [Testing](#testing)). The `/debug`
-route exists because of this. It made the manual pass cheap, but it is a
-mitigation, not a substitute.
+QA was manual at every step: each state exercised by hand. The e2e suite
+replaced it later.
 
 For UI and UX, I leaned on the `prototype` and interface skills (`better-*`, `make-interfaces-feel-better`) to explore states, focus
 management, and motion. Their output was

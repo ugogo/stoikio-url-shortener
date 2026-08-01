@@ -17,6 +17,8 @@ export default tseslint.config(
       '**/.output/**',
       '**/.nitro/**',
       '**/.tanstack/**',
+      '**/playwright-report/**',
+      '**/test-results/**',
       'apps/web/src/routeTree.gen.ts',
       'apps/api/src/generated/**',
       // Vendored agent skills — owned by their upstream repos, not by us.
